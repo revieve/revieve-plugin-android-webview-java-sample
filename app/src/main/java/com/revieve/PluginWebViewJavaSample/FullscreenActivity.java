@@ -1,16 +1,28 @@
 package com.revieve.PluginWebViewJavaSample;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.ConsoleMessage;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import com.revieve.PluginWebViewJavaSample.databinding.ActivityFullscreenBinding;
+
+import java.util.Arrays;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -130,6 +142,71 @@ public class FullscreenActivity extends AppCompatActivity {
         // created, to briefly hint to the user that UI controls
         // are available.
         delayedHide(100);
+
+
+        // Revieve webview example:
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+
+        // Load the revieve-web-plugin from Revieve's production CDN:
+        final String REVIEVE_CDN_DOMAIN = "https://d38knilzwtuys1.cloudfront.net";
+        // Origin set to *
+        final String REVIEVE_ORIGIN = "*";
+        // Select which Revieve API environment to use. Can be test or prod
+        final String REVIEVE_ENV = "test";
+        // Partner ID
+        final String REVIEVE_PARTNER_ID = "kToSMAjsNx";
+
+        // Construct the full URL
+        final String REVIEVE_FULL_URL = REVIEVE_CDN_DOMAIN + "/revieve-plugin-v4/app.html?partnerId=" + REVIEVE_PARTNER_ID + "&env=" + REVIEVE_ENV + "&crossOrigin=1&origin=" + REVIEVE_ORIGIN;
+
+        // Load it
+        WebView myWebView = (WebView) findViewById(R.id.revieveWebview);
+
+        myWebView.setWebChromeClient(new WebChromeClient() {
+            private Boolean listenerCalled = false;
+
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                Log.d("REVIEVE_WEBVIEW_CONSOLE", String.valueOf(consoleMessage));
+                return super.onConsoleMessage(consoleMessage);
+            }
+
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                Log.d("REVIEVE_WEBVIEW", "onPermissionRequest: " + Arrays.toString(request.getResources()));
+
+                request.grant(request.getResources());
+
+                // TODO: If you want the Revieve camera to open inside the webview, request the camera permissions from
+                // the user and then grant it to the webview as described here:
+                // https://github.com/googlesamples/android-PermissionRequest
+            }
+
+            @Override
+            public void onProgressChanged(WebView view, int progress) {
+                if (progress == 100 && !listenerCalled) {
+                    listenerCalled = true;
+                    Log.d("REVIEVE_WEBVIEW_INIT", "addListener is called now");
+                    myWebView.loadUrl(
+                            "javascript:(function() {" +
+                                    "window.parent.addEventListener ('message', function(event) {" +
+                                    "Android.handleMessage(JSON.stringify(event.data));});" +
+                                    "})()"
+                    );
+                }
+                super.onProgressChanged(view, progress);
+            }
+        });
+
+        WebSettings webSettings = myWebView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setAllowFileAccess(true);
+        webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+        webSettings.setGeolocationEnabled(true);
+        webSettings.setAllowContentAccess(true);
+        myWebView.addJavascriptInterface(new RevieveJSInterface(this), "Android");
+
+        myWebView.loadUrl(REVIEVE_FULL_URL);
     }
 
     private void toggle() {

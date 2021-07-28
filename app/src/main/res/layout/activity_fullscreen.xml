@@ -28,6 +28,11 @@
         android:layout_height="match_parent"
         android:fitsSystemWindows="true">
 
+        <WebView
+            android:id="@+id/revieveWebview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
         <LinearLayout
             android:id="@+id/fullscreen_content_controls"
             style="@style/Widget.Theme.Revievepluginandroidwebviewjavasample.ButtonBar.Fullscreen"
@@ -46,6 +51,7 @@
                 android:text="@string/dummy_button" />
 
         </LinearLayout>
+
     </FrameLayout>
 
 </FrameLayout>
