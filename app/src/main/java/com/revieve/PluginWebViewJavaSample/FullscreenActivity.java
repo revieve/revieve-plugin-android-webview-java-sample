@@ -19,7 +19,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-
+import android.graphics.Bitmap;
 import com.revieve.PluginWebViewJavaSample.databinding.ActivityFullscreenBinding;
 
 import java.util.Arrays;
@@ -164,6 +164,13 @@ public class FullscreenActivity extends AppCompatActivity {
 
         myWebView.setWebChromeClient(new WebChromeClient() {
             private Boolean listenerCalled = false;
+            
+            @Override
+            public Bitmap getDefaultVideoPoster() {
+                // disables the default video tag poster image (grey play button)
+                // https://stackoverflow.com/questions/35220624/android-webview-gray-play-button
+                return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
+            }
 
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
@@ -204,6 +211,7 @@ public class FullscreenActivity extends AppCompatActivity {
         webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
         webSettings.setGeolocationEnabled(true);
         webSettings.setAllowContentAccess(true);
+        webSettings.setMediaPlaybackRequiresUserGesture(false);
         myWebView.addJavascriptInterface(new RevieveJSInterface(this), "Android");
 
         myWebView.loadUrl(REVIEVE_FULL_URL);
