@@ -235,7 +235,7 @@ public class FullscreenActivity extends AppCompatActivity {
 
     @Override
     protected void onResume () {
-        super.onPause();
+        super.onResume();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             myWebView.postWebMessage(
                     new WebMessage("{\"type\": \"setCameraPause\", \"payload\": false}"),
