@@ -7,15 +7,18 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.service.autofill.OnClickAction;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.ConsoleMessage;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
+import android.webkit.WebMessage;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -48,6 +51,19 @@ public class FullscreenActivity extends AppCompatActivity {
     private static final int UI_ANIMATION_DELAY = 300;
     private final Handler mHideHandler = new Handler();
     private View mContentView;
+    private WebView myWebView;
+    // Load the revieve-web-plugin from Revieve's production CDN:
+    final String REVIEVE_CDN_DOMAIN = "https://d38knilzwtuys1.cloudfront.net";
+    // Origin set to *
+    final String REVIEVE_ORIGIN = "*";
+    // Select which Revieve API environment to use. Can be test or prod
+    final String REVIEVE_ENV = "test";
+    // Partner ID
+    final String REVIEVE_PARTNER_ID = "HzyODz98rN";
+
+    // Construct the full URL
+    final String REVIEVE_FULL_URL = REVIEVE_CDN_DOMAIN + "/revieve-plugin-v4/app.html?partnerId=" + REVIEVE_PARTNER_ID + "&env=" + REVIEVE_ENV + "&crossOrigin=1&origin=" + REVIEVE_ORIGIN;
+
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
         @Override
@@ -107,6 +123,24 @@ public class FullscreenActivity extends AppCompatActivity {
             return false;
         }
     };
+    /**
+     * Example of app -> Revieve webview communication
+     */
+    private final View.OnClickListener mDummyButtonOnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            final String productId = "613705";
+            final String action = "{\"type\":\"tryonProduct\", \"payload\": {\"id\":\"" + productId + "\"}}";
+            // to disable tryOn effects you can use "{\"type\":\"resetTryingOnProducts\"}";
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                myWebView.postWebMessage(
+                    new WebMessage(action),
+                    Uri.parse(REVIEVE_CDN_DOMAIN)
+                );
+            }
+        }
+    };
     private ActivityFullscreenBinding binding;
 
     @Override
@@ -132,6 +166,7 @@ public class FullscreenActivity extends AppCompatActivity {
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         binding.dummyButton.setOnTouchListener(mDelayHideTouchListener);
+        binding.dummyButton.setOnClickListener(mDummyButtonOnClickListener);
     }
 
     @Override
@@ -147,20 +182,9 @@ public class FullscreenActivity extends AppCompatActivity {
         // Revieve webview example:
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
 
-        // Load the revieve-web-plugin from Revieve's production CDN:
-        final String REVIEVE_CDN_DOMAIN = "https://d38knilzwtuys1.cloudfront.net";
-        // Origin set to *
-        final String REVIEVE_ORIGIN = "*";
-        // Select which Revieve API environment to use. Can be test or prod
-        final String REVIEVE_ENV = "test";
-        // Partner ID
-        final String REVIEVE_PARTNER_ID = "kToSMAjsNx";
-
-        // Construct the full URL
-        final String REVIEVE_FULL_URL = REVIEVE_CDN_DOMAIN + "/revieve-plugin-v4/app.html?partnerId=" + REVIEVE_PARTNER_ID + "&env=" + REVIEVE_ENV + "&crossOrigin=1&origin=" + REVIEVE_ORIGIN;
 
         // Load it
-        WebView myWebView = (WebView) findViewById(R.id.revieveWebview);
+        myWebView = (WebView) findViewById(R.id.revieveWebview);
 
         myWebView.setWebChromeClient(new WebChromeClient() {
             private Boolean listenerCalled = false;
