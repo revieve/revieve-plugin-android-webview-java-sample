@@ -7,6 +7,7 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,8 +18,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.ConsoleMessage;
 import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebMessage;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -32,6 +36,7 @@ import java.util.Arrays;
  * status bar and navigation/system bar) with user interaction.
  */
 public class FullscreenActivity extends AppCompatActivity {
+    private ValueCallback<Uri[]> mFilePathCallback;
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -167,6 +172,21 @@ public class FullscreenActivity extends AppCompatActivity {
         // while interacting with the UI.
         binding.dummyButton.setOnTouchListener(mDelayHideTouchListener);
         binding.dummyButton.setOnClickListener(mDummyButtonOnClickListener);
+
+        // Initialize WebView and set onShowFileChooser listener
+        WebView webView = findViewById(R.id.revieveWebview);
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                view.loadUrl(request.getUrl().toString());
+                return false;
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                // Handle error
+            }
+        });
     }
 
     @Override
@@ -227,6 +247,21 @@ public class FullscreenActivity extends AppCompatActivity {
                 }
                 super.onProgressChanged(view, progress);
             }
+
+            @Override
+            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, WebChromeClient.FileChooserParams fileChooserParams) {
+                // Save callback
+                mFilePathCallback = filePathCallback;
+
+                // Create intent to open file chooser for image selection
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("image/*");
+
+                // Launch file chooser
+                Intent chooserIntent = Intent.createChooser(intent, "Choose Image");
+                startActivityForResult(chooserIntent, 44745);
+                return true;
+            }
         });
 
         WebSettings webSettings = myWebView.getSettings();
@@ -239,6 +274,28 @@ public class FullscreenActivity extends AppCompatActivity {
         myWebView.addJavascriptInterface(new RevieveJSInterface(this), "Android");
 
         myWebView.loadUrl(REVIEVE_FULL_URL);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == 44745) {
+            if(resultCode == RESULT_OK) {
+                if(data != null) {
+                    // Get the selected image URI(s)
+                    Uri uri = data.getData();
+                    Uri[] results = new Uri[]{uri};
+
+                    // Return the selected image URI(s) to the WebView
+                    mFilePathCallback.onReceiveValue(results);
+                    mFilePathCallback = null;
+                }
+            } else {
+                mFilePathCallback.onReceiveValue(null);
+                mFilePathCallback = null;
+            }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
     }
 
     private void toggle() {
