@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -271,7 +272,7 @@ public class FullscreenActivity extends AppCompatActivity {
         webSettings.setGeolocationEnabled(true);
         webSettings.setAllowContentAccess(true);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
-        myWebView.addJavascriptInterface(new RevieveJSInterface(this), "Android");
+        myWebView.addJavascriptInterface(new RevieveJSInterface(this, myWebView), "Android");
 
         myWebView.loadUrl(REVIEVE_FULL_URL);
     }
@@ -338,5 +339,20 @@ public class FullscreenActivity extends AppCompatActivity {
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
+    }
+
+    /**
+     * Example dialog for callback test
+     * @param title alert title
+     * @param message alert message
+     */
+    public void showAlert(String title, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .setCancelable(false)
+                .create()
+                .show();
     }
 }
