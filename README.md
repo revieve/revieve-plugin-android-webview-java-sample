@@ -163,13 +163,10 @@ For example, let's say you want to send a `tryonProduct` command with a specific
 
 ```java
 private void sendTryonProductCommand(String productId) {
-    String action = String.format("{\"type\":\"tryonProduct\", \"payload\": {\"id\":\"%s\"}}", productId);
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        myWebView.postWebMessage(
-            new WebMessage(action),
-            Uri.parse(REVIEVE_CDN_DOMAIN)
-        );
-    }
+    final String jsCommand = String.format("window.Revieve.API.liveAR.addTryOnProduct('%s');", productId);
+    // to disable tryOn effects you can use "window.Revieve.API.liveAR.resetTryOnProducts();";
+    Log.d("REVIEVE_PLUGIN_API", jsCommand);
+    myWebView.evaluateJavascript(jsCommand, null);
 }
 ```
 
