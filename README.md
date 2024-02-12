@@ -32,9 +32,9 @@ In your `FullscreenActivity.java` file, setup the configuration variables as ins
 
 ```java
 // Select which Revieve API environment to use. Can be test or prod
-final String REVIEVE_ENV = "test";
+static final String REVIEVE_ENV = "test";
 // your partner Id provided by Revieve
-final String REVIEVE_PARTNER_ID = "GHru81v4aU";
+static final String REVIEVE_PARTNER_ID = "9KpsLizwYK";
 ```
 
 2. **Add the WebView to your layout:**
@@ -63,19 +63,25 @@ webSettings.setAllowContentAccess(true);
 webSettings.setMediaPlaybackRequiresUserGesture(false);
 ```
 
-4. **Load the plugin solution:**
+4. **Inject config on provided HTML sample file:**
 
 ```java
-myWebView.loadUrl(REVIEVE_FULL_URL);
+final String html = getHtmlWithConfig("revieve.html");
+```
+
+5. **Load the plugin from assets HTML file:**
+
+```java
+myWebView.loadDataWithBaseURL("https://d38knilzwtuys1.cloudfront.net/revieve-plugin-v4/app.html", html, "text/html", "UTF-8", null);
 ```
 
 ## Communication with plugin
 
-The sample project provides a basic integration with the plugin solution. You should customize custom behavior in response to plugin events by modifying the source code as needed.
+The sample project provides basic integration with the plugin solution. Customize the response to plugin callbacks by modifying the source code as needed.
 
 Refer to the plugin solution's basic and advanced documentation for details on available callbacks and data options.
 
-The `postMessage` API enables seamless communication between the plugin solution and your native application. This section will guide you through the process of setting up and handling `postMessage` communication in the WKWebView integration sample.
+The `postMessage`` API enables seamless communication between the plugin solution and your native application. This section guides you through setting up and handling `postMessage`` communication in the integration sample.
 
 ### Configuring PostMessage Listener
 
@@ -89,28 +95,26 @@ webView.addJavascriptInterface(new WebAppInterface(this), "Android");
 
 2. **Inject JavaScript handler:**
 
-Add a JavaScript code snippet to your WebView that overrides the default postMessage function and forwards the received messages to your native app:
+Add a JavaScript method to your HTML that forwards the received messages to your native app:
 
-```java
-myWebView.setWebChromeClient(new WebChromeClient() {
-    boolean listenerCalled = false;
-
-    @Override
-    public void onProgressChanged(WebView view, int progress) {
-        if (progress == 100 && !listenerCalled) {
-            listenerCalled = true;
-            Log.d("REVIEVE_WEBVIEW_INIT", "addListener is called now");
-            myWebView.loadUrl(
-                    "javascript:(function() {" +
-                            "window.parent.addEventListener ('message', function(event) {" +
-                            "Android.handleMessage(JSON.stringify(event.data));});" +
-                            "})()"
-            );
-        }
-        super.onProgressChanged(view, progress);
-    }
-});
+```javascript
+function postMessageToCallbackHandler(type, payload) {
+    const message = { type, payload };
+    const serializedMessage = JSON.stringify(message);
+    Android.handleMessage(serializedMessage);
+}
 ```
+
+Use this method inside any callback you can to forward to the native side:
+
+```javascript
+...
+onClickProduct: function (product) {
+    postMessageToCallbackHandler("onClickProduct", [product]);
+},
+...
+```
+
 
 3. **Handle JavaScript messages:**
 
@@ -131,8 +135,8 @@ Inside the `handleMessage` method, you can parse the JSON message body and perfo
 @JavascriptInterface
 public void handleMessage(String message) {
     try {
-        JSONObject jsonObject = new JSONObject(message);
-        String type = jsonObject.getString("type");
+        JsonObject message = new Gson().fromJson(body, JsonObject.class);
+        String type = message.get("type").getAsString();
 
         if (type.equals("someEventType")) {
             showToast("Event triggered: 'someEventType'");
@@ -149,9 +153,9 @@ private void showToast(final String message) {
 
 Refer to the plugin internal basic and advanced documentation for a comprehensive list of available events/callbacks and their payloads.
 
-### Sending PostMessage Commands
+### Sending API Commands
 
-In some cases like PDP try-on integration you may want to send commands from your native app to the  plugin. This section will demonstrate how to send a command to the plugin using `postMessage` communication.
+In some cases, like PDP try-on integration, you may want to send commands from your native app to the Revive API. This section demonstrates how to call a JavaScript function in the plugin solution from your native app.
 
 1. **Create the function to send the command:**
 
@@ -169,7 +173,7 @@ private void sendTryonProductCommand(String productId) {
 }
 ```
 
-In the example above, a JSON object is created with the appropriate `type` and `payload`. This JSON object is then sent to the WebView plugin.
+In the example above, a javascript Revieve API function is called directly with the product ID as a parameter.
 
 2. **Add a button to trigger the command:**
 
@@ -198,3 +202,7 @@ sendTryonProductButton.setOnClickListener(new View.OnClickListener() {
 That's it! Now, your native app can communicate with the plugin solution both ways. You can send commands to the plugin and handle incoming events.
 
 For more information about available commands and events, refer to the plugin solution's documentation.
+
+### Legacy integration without loader script
+
+You can find our legacy documentation for integrating the plugin solution without the loader script [here](https://github.com/revieve/revieve-plugin-android-webview-java-sample/tree/legacy)
