@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Revieve</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
+    />
+    <script type="text/javascript">
+      function postMessageToCallbackHandler(type, payload) {
+        const message = { type, payload };
+        const serializedMessage = JSON.stringify(message);
+        Android.handleMessage(serializedMessage);
+      }
+
+      // do not delete the below line
+      var revieveConfig = {
+        partner_id: "%REVIEVE_PARTNER_ID%",
+        locale: "%REVIEVE_LOCALE%",
+        env: "%REVIEVE_ENV%",
+        disableLauncherButton: true,
+        onClickProduct: function (product) {
+          postMessageToCallbackHandler("onClickProduct", [product]);
+        },
+        // you can implement rest of callbacks here as described in Revieve documentation
+      };
+
+      (function () {
+        var rv = document.createElement("script");
+        rv.src =
+          "https://d38knilzwtuys1.cloudfront.net/revieve-plugin-v4/revieve-plugin-loader.js";
+        rv.charset = "utf-8";
+        rv.type = "text/javascript";
+        rv.async = "true";
+        rv.onload = rv.onreadystatechange = function () {
+          var rs = this.readyState;
+          if (rs && rs != "complete" && rs != "loaded") return;
+          Revieve.Init(revieveConfig, function () {
+            // Comment out the below line if you want to open the modal
+            // manually when user clicks a certain button or navigates
+            // to certain page.
+            Revieve.API.show();
+          });
+        };
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(rv, s);
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- you can add a loader/splash here -->
+  </body>
+</html>

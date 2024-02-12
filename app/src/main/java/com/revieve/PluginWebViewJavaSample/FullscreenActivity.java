@@ -30,6 +30,9 @@ import android.webkit.WebViewClient;
 import android.graphics.Bitmap;
 import com.revieve.PluginWebViewJavaSample.databinding.ActivityFullscreenBinding;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
 /**
@@ -58,17 +61,14 @@ public class FullscreenActivity extends AppCompatActivity {
     private final Handler mHideHandler = new Handler();
     private View mContentView;
     private WebView myWebView;
-    // Load the revieve-web-plugin from Revieve's production CDN:
-    final String REVIEVE_CDN_DOMAIN = "https://d38knilzwtuys1.cloudfront.net";
-    // Origin set to *
-    final String REVIEVE_ORIGIN = "*";
-    // Select which Revieve API environment to use. Can be test or prod
-    final String REVIEVE_ENV = "test";
-    // Partner ID
-    final String REVIEVE_PARTNER_ID = "HzyODz98rN";
 
-    // Construct the full URL
-    final String REVIEVE_FULL_URL = REVIEVE_CDN_DOMAIN + "/revieve-plugin-v4/app.html?partnerId=" + REVIEVE_PARTNER_ID + "&env=" + REVIEVE_ENV + "&crossOrigin=1&origin=" + REVIEVE_ORIGIN;
+    // Select which Revieve API environment to use. Can be test or prod
+    static final String REVIEVE_ENV = "test";
+    // your partner Id provided by Revieve
+    static final String REVIEVE_PARTNER_ID = "9KpsLizwYK"; // skincare demo
+    // static final String REVIEVE_PARTNER_ID = "GHru81v4aU"; // vto makeup demo
+    // default locale
+    static final String REVIEVE_LOCALE = "en";
 
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
@@ -130,23 +130,24 @@ public class FullscreenActivity extends AppCompatActivity {
         }
     };
     /**
-     * Example of app -> Revieve webview communication
+     * Example of native -> Revieve webview communication
      */
     private final View.OnClickListener mDummyButtonOnClickListener = new View.OnClickListener() {
+        private void sendTryonProductCommand(String productId) {
+            final String jsCommand = String.format("window.Revieve.API.liveAR.addTryOnProduct('%s');", productId);
+            // to disable tryOn effects you can use "window.Revieve.API.liveAR.resetTryOnProducts();";
+            Log.d("REVIEVE_PLUGIN_API", jsCommand);
+            myWebView.evaluateJavascript(jsCommand, null);
+        }
+
         @Override
         public void onClick(View view) {
             final String productId = "613705";
-            final String action = "{\"type\":\"tryonProduct\", \"payload\": {\"id\":\"" + productId + "\"}}";
-            // to disable tryOn effects you can use "{\"type\":\"resetTryingOnProducts\"}";
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                myWebView.postWebMessage(
-                    new WebMessage(action),
-                    Uri.parse(REVIEVE_CDN_DOMAIN)
-                );
-            }
+            sendTryonProductCommand(productId);
+            
         }
     };
+    
     private ActivityFullscreenBinding binding;
 
     @Override
@@ -189,6 +190,31 @@ public class FullscreenActivity extends AppCompatActivity {
             }
         });
     }
+
+    private String getHtmlWithConfig(String filename) {
+        try {
+            // Read HTML content from assets
+            InputStream is = getAssets().open(filename);
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            String html = new String(buffer, "UTF-8");
+
+            // inject config vars
+            html = html.replace("%REVIEVE_PARTNER_ID%", REVIEVE_PARTNER_ID)
+            .replace("%REVIEVE_LOCALE%", REVIEVE_LOCALE)
+            .replace("%REVIEVE_ENV%", REVIEVE_ENV);
+
+            // Load modified HTML content into WebView
+            return html;
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Handle error
+            return "";
+        }
+    }
+
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -235,21 +261,6 @@ public class FullscreenActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onProgressChanged(WebView view, int progress) {
-                if (progress == 100 && !listenerCalled) {
-                    listenerCalled = true;
-                    Log.d("REVIEVE_WEBVIEW_INIT", "addListener is called now");
-                    myWebView.loadUrl(
-                            "javascript:(function() {" +
-                                    "window.parent.addEventListener ('message', function(event) {" +
-                                    "Android.handleMessage(JSON.stringify(event.data));});" +
-                                    "})()"
-                    );
-                }
-                super.onProgressChanged(view, progress);
-            }
-
-            @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, WebChromeClient.FileChooserParams fileChooserParams) {
                 // Save callback
                 mFilePathCallback = filePathCallback;
@@ -272,9 +283,10 @@ public class FullscreenActivity extends AppCompatActivity {
         webSettings.setGeolocationEnabled(true);
         webSettings.setAllowContentAccess(true);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
-        myWebView.addJavascriptInterface(new RevieveJSInterface(this, myWebView), "Android");
 
-        myWebView.loadUrl(REVIEVE_FULL_URL);
+        final String html = getHtmlWithConfig("revieve.html");
+        myWebView.addJavascriptInterface(new RevieveJSInterface(this, myWebView), "Android");
+        myWebView.loadDataWithBaseURL("https://d38knilzwtuys1.cloudfront.net/revieve-plugin-v4/app.html", html, "text/html", "UTF-8", null);
     }
 
     @Override
