@@ -81,7 +81,7 @@ The sample project provides basic integration with the plugin solution. Customiz
 
 Refer to the plugin solution's basic and advanced documentation for details on available callbacks and data options.
 
-The `postMessage`` API enables seamless communication between the plugin solution and your native application. This section guides you through setting up and handling `postMessage`` communication in the integration sample.
+The `postMessage` API enables seamless communication between the plugin solution and your native application. This section guides you through setting up and handling `postMessage` communication in the integration sample.
 
 ### Configuring PostMessage Listener
 
@@ -163,13 +163,10 @@ For example, let's say you want to send a `tryonProduct` command with a specific
 
 ```java
 private void sendTryonProductCommand(String productId) {
-    String action = String.format("{\"type\":\"tryonProduct\", \"payload\": {\"id\":\"%s\"}}", productId);
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        myWebView.postWebMessage(
-            new WebMessage(action),
-            Uri.parse(REVIEVE_CDN_DOMAIN)
-        );
-    }
+    final String jsCommand = String.format("window.Revieve.API.liveAR.addTryOnProduct('%s');", productId);
+    // to disable tryOn effects you can use "window.Revieve.API.liveAR.resetTryOnProducts();";
+    Log.d("REVIEVE_PLUGIN_API", jsCommand);
+    myWebView.evaluateJavascript(jsCommand, null);
 }
 ```
 
