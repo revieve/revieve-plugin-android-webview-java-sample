@@ -7,13 +7,16 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.service.autofill.OnClickAction;
+import android.util.Base64;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -33,6 +36,8 @@ import com.revieve.PluginWebViewJavaSample.databinding.ActivityFullscreenBinding
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Arrays;
 
 /**
@@ -366,5 +371,37 @@ public class FullscreenActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .create()
                 .show();
+    }
+    /** 
+     * Example function for native sharing using callback
+     * @param base64Data base64 image data string
+    */
+    public void shareBase64Image(String base64Data) {
+        try {
+            String pureBase64 = base64Data.contains(",")
+                    ? base64Data.substring(base64Data.indexOf(",") + 1)
+                    : base64Data;
+
+            byte[] decoded = Base64.decode(pureBase64, Base64.DEFAULT);
+
+            String fileName = "share_" + System.currentTimeMillis() + ".png";
+            File outFile = new File(getCacheDir(), fileName);
+
+            try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                fos.write(decoded);
+            }
+
+            Uri uri = FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", outFile);
+
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("image/*");
+            share.putExtra(Intent.EXTRA_STREAM, uri);
+            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            startActivity(Intent.createChooser(share, "Share image"));
+        } catch (Exception e) {
+            Log.e("REVIEVE_SHARE", "Failed", e);
+        }
     }
 }

@@ -23,6 +23,12 @@
         onClickProduct: function (product) {
           postMessageToCallbackHandler("onClickProduct", [product]);
         },
+        onClose: function () {
+          postMessageToCallbackHandler("onClose", []);
+        },
+        onShare: function (payload) {
+          postMessageToCallbackHandler("onShare", payload);
+        },
         // you can implement rest of callbacks here as described in Revieve documentation
       };
 
