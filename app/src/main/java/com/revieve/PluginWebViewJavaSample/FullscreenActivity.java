@@ -21,6 +21,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.ConsoleMessage;
+import android.webkit.MimeTypeMap;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -372,16 +373,41 @@ public class FullscreenActivity extends AppCompatActivity {
                 .create()
                 .show();
     }
-    /** 
+
+    private static String getExtensionFromMimeType(String mime) {
+        if (mime == null) return ".png"; // default
+        mime = mime.toLowerCase();
+
+        // First try Android's map
+        String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime);
+        if (ext != null && !ext.isEmpty()) return "." + ext;
+
+        // Fallbacks for common image types
+        switch (mime) {
+            case "image/jpeg": return ".jpg";
+            case "image/jpg":  return ".jpg";
+            case "image/png":  return ".png";
+            case "image/webp": return ".webp";
+            case "image/heic": return ".heic";
+            case "image/heif": return ".heif";
+            case "image/avif": return ".avif";
+            case "image/gif":  return ".gif";
+            case "image/bmp":  return ".bmp";
+            case "image/tiff": return ".tif";
+            default:           return ".png";
+        }
+    }
+    /**
      * Example function for native sharing using callback
      * @param base64Data base64 image data string
-    */
+     */
     public void shareBase64Image(String base64Data) {
         try {
             String mimeType = "image/png"; // default
-            String extension = ".png"; // default
+            String extension = ".png";     // default
             String pureBase64 = base64Data;
-            if (base64Data.startsWith("data:")) {
+
+            if (base64Data != null && base64Data.startsWith("data:")) {
                 int sepIdx = base64Data.indexOf(",");
                 if (sepIdx > 0) {
                     String header = base64Data.substring(5, sepIdx); // skip "data:"
@@ -391,6 +417,11 @@ public class FullscreenActivity extends AppCompatActivity {
                     } else {
                         mimeType = header;
                     }
+                    // strip any whitespace/params just in case
+                    int paramIdx = mimeType.indexOf(";");
+                    if (paramIdx > 0) mimeType = mimeType.substring(0, paramIdx);
+                    mimeType = mimeType.trim().toLowerCase();
+
                     extension = getExtensionFromMimeType(mimeType);
                     pureBase64 = base64Data.substring(sepIdx + 1);
                 }
@@ -409,13 +440,13 @@ public class FullscreenActivity extends AppCompatActivity {
                     this, getPackageName() + ".fileprovider", outFile);
 
             Intent share = new Intent(Intent.ACTION_SEND);
-            share.setType("image/*");
+            share.setType(mimeType != null ? mimeType : "image/*");
             share.putExtra(Intent.EXTRA_STREAM, uri);
             share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
             startActivity(Intent.createChooser(share, "Share image"));
         } catch (Exception e) {
-            Log.e("REVIEVE_SHARE", "Failed to share image", e);
+            android.util.Log.e("REVIEVE_SHARE", "Failed to share image", e);
         }
     }
 }
