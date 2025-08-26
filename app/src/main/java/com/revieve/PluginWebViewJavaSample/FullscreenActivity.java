@@ -378,13 +378,27 @@ public class FullscreenActivity extends AppCompatActivity {
     */
     public void shareBase64Image(String base64Data) {
         try {
-            String pureBase64 = base64Data.contains(",")
-                    ? base64Data.substring(base64Data.indexOf(",") + 1)
-                    : base64Data;
+            String mimeType = "image/png"; // default
+            String extension = ".png"; // default
+            String pureBase64 = base64Data;
+            if (base64Data.startsWith("data:")) {
+                int sepIdx = base64Data.indexOf(",");
+                if (sepIdx > 0) {
+                    String header = base64Data.substring(5, sepIdx); // skip "data:"
+                    int semiIdx = header.indexOf(";");
+                    if (semiIdx > 0) {
+                        mimeType = header.substring(0, semiIdx);
+                    } else {
+                        mimeType = header;
+                    }
+                    extension = getExtensionFromMimeType(mimeType);
+                    pureBase64 = base64Data.substring(sepIdx + 1);
+                }
+            }
 
             byte[] decoded = Base64.decode(pureBase64, Base64.DEFAULT);
 
-            String fileName = "share_" + System.currentTimeMillis() + ".png";
+            String fileName = "share_" + System.currentTimeMillis() + extension;
             File outFile = new File(getCacheDir(), fileName);
 
             try (FileOutputStream fos = new FileOutputStream(outFile)) {
@@ -401,7 +415,7 @@ public class FullscreenActivity extends AppCompatActivity {
 
             startActivity(Intent.createChooser(share, "Share image"));
         } catch (Exception e) {
-            Log.e("REVIEVE_SHARE", "Failed", e);
+            Log.e("REVIEVE_SHARE", "Failed to share image", e);
         }
     }
 }
