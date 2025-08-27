@@ -26,8 +26,8 @@
         onClose: function () {
           postMessageToCallbackHandler("onClose", []);
         },
-        onShare: function (payload) {
-          postMessageToCallbackHandler("onShare", payload);
+        onNativeShare: function (payload) {
+          postMessageToCallbackHandler("onNativeShare", payload);
         },
         // you can implement rest of callbacks here as described in Revieve documentation
       };

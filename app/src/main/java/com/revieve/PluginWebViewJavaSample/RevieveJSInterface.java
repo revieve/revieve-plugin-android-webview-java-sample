@@ -41,7 +41,7 @@ public class RevieveJSInterface {
                         mActivity.showAlert(title, description);
                     }
                 });
-            } else if ("onShare".equals(type)) {
+            } else if ("onNativeShare".equals(type)) {
                 JsonObject payload = message.get("payload").getAsJsonObject();
                 // payload contains image in base64 format
                 String imageBase64 = payload.get("image").getAsString();
