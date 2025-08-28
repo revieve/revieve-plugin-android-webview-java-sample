@@ -7,17 +7,21 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.service.autofill.OnClickAction;
+import android.util.Base64;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.ConsoleMessage;
+import android.webkit.MimeTypeMap;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -33,6 +37,8 @@ import com.revieve.PluginWebViewJavaSample.databinding.ActivityFullscreenBinding
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.Arrays;
 
 /**
@@ -366,5 +372,86 @@ public class FullscreenActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .create()
                 .show();
+    }
+
+    private static String getExtensionFromMimeType(String mime) {
+        if (mime == null) return ".png"; // default
+        mime = mime.toLowerCase();
+
+        // First try Android's map
+        String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime);
+        if (ext != null && !ext.isEmpty()) return "." + ext;
+
+        // Fallbacks for common image types
+        switch (mime) {
+            case "image/jpeg": return ".jpg";
+            case "image/jpg":  return ".jpg";
+            case "image/png":  return ".png";
+            case "image/webp": return ".webp";
+            case "image/heic": return ".heic";
+            case "image/heif": return ".heif";
+            case "image/avif": return ".avif";
+            case "image/gif":  return ".gif";
+            case "image/bmp":  return ".bmp";
+            case "image/tiff": return ".tif";
+            default:           return ".png";
+        }
+    }
+    /**
+     * Example function for native sharing using callback
+     * Note: This implementation writes a temporary file into the app's cache
+     * directory and does not remove it afterwards. In a real integration you should
+     * add cleanup logic (e.g. delete the file after a delay, or sweep old
+     * "share_*" files on app startup) to avoid storage accumulation.
+     *
+     * @param base64Data base64 image data string
+     */
+    public void shareBase64Image(String base64Data) {
+        try {
+            String mimeType = "image/png"; // default
+            String extension = ".png";     // default
+            String pureBase64 = base64Data;
+
+            if (base64Data != null && base64Data.startsWith("data:")) {
+                int sepIdx = base64Data.indexOf(",");
+                if (sepIdx > 0) {
+                    String header = base64Data.substring(5, sepIdx); // skip "data:"
+                    int semiIdx = header.indexOf(";");
+                    if (semiIdx > 0) {
+                        mimeType = header.substring(0, semiIdx);
+                    } else {
+                        mimeType = header;
+                    }
+                    // strip any whitespace/params just in case
+                    int paramIdx = mimeType.indexOf(";");
+                    if (paramIdx > 0) mimeType = mimeType.substring(0, paramIdx);
+                    mimeType = mimeType.trim().toLowerCase();
+
+                    extension = getExtensionFromMimeType(mimeType);
+                    pureBase64 = base64Data.substring(sepIdx + 1);
+                }
+            }
+
+            byte[] decoded = Base64.decode(pureBase64, Base64.DEFAULT);
+
+            String fileName = "share_" + System.currentTimeMillis() + extension;
+            File outFile = new File(getCacheDir(), fileName);
+
+            try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                fos.write(decoded);
+            }
+
+            Uri uri = FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", outFile);
+
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType(mimeType != null ? mimeType : "image/*");
+            share.putExtra(Intent.EXTRA_STREAM, uri);
+            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            startActivity(Intent.createChooser(share, "Share image"));
+        } catch (Exception e) {
+            android.util.Log.e("REVIEVE_SHARE", "Failed to share image", e);
+        }
     }
 }

@@ -81,7 +81,7 @@ The sample project provides basic integration with the plugin solution. Customiz
 
 Refer to the plugin solution's basic and advanced documentation for details on available callbacks and data options.
 
-The `postMessage`` API enables seamless communication between the plugin solution and your native application. This section guides you through setting up and handling `postMessage`` communication in the integration sample.
+The `postMessage` API enables seamless communication between the plugin solution and your native application. This section guides you through setting up and handling `postMessage` communication in the integration sample.
 
 ### Configuring PostMessage Listener
 
