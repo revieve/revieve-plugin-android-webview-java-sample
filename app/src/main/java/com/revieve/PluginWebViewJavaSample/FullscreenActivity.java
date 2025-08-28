@@ -399,6 +399,11 @@ public class FullscreenActivity extends AppCompatActivity {
     }
     /**
      * Example function for native sharing using callback
+     * Note: This implementation writes a temporary file into the app's cache
+     * directory and does not remove it afterwards. In a real integration you should
+     * add cleanup logic (e.g. delete the file after a delay, or sweep old
+     * "share_*" files on app startup) to avoid storage accumulation.
+     *
      * @param base64Data base64 image data string
      */
     public void shareBase64Image(String base64Data) {
